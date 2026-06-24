@@ -1,0 +1,24 @@
+data:
+  raw_dir: "data/raw/visDrone.v5-visdrone_rcnn.coco"
+  processed_dir: "data/processed"
+  model_save_dir: "models_weights"
+  train_split: "train"
+  valid_split: "valid"
+  test_split: "test"
+  num_classes: 10 
+
+training:
+  img_size: 640
+  batch_size: 128
+  epochs: 5
+  lr: 0.001
+  weight_decay: 0.0005
+  device: "cpu"
+  seed: 42
+
+testing:
+  device: "xpu"
+
+results:
+  save_dir: "results"
+  log_interval: 10
