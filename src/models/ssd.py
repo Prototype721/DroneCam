@@ -1,44 +1,43 @@
 import os
 
 import torch
-from torchvision.models.detection.faster_rcnn import (
-    fasterrcnn_resnet50_fpn_v2, 
-    fasterrcnn_mobilenet_v3_large_320_fpn,
-    FastRCNNPredictor
-)
 from torchvision.models.detection import (
-    FasterRCNN_ResNet50_FPN_V2_Weights,
-    FasterRCNN_MobileNet_V3_Large_320_FPN_Weights
+    ssd300_vgg16,
+    ssdlite320_mobilenet_v3_large,
+    SSD300_VGG16_Weights,
+    SSDLite320_MobileNet_V3_Large_Weights
 )
+from torchvision.models.detection.ssd import SSDHead
+
 
 from src.models.model_interface import BaseModel
 from src.dataset.torch_dataset import get_data_loader
 
 
-class Custom_Faster_RCNN(BaseModel):
+class Custom_SSD(BaseModel):
 
     def __init__(self, cfg):
         super().__init__(cfg)
         models = {
-            "fpn_v2": {
-                "fn": fasterrcnn_resnet50_fpn_v2,
-                "weights": FasterRCNN_ResNet50_FPN_V2_Weights.DEFAULT
-        },
-            "v3_large_320_fpn": {
-                "fn": fasterrcnn_mobilenet_v3_large_320_fpn,
-                "weights": FasterRCNN_MobileNet_V3_Large_320_FPN_Weights.DEFAULT
+            "vgg16": {
+                "fn": ssd300_vgg16, 
+                "weights": SSD300_VGG16_Weights.DEFAULT
+            },
+            "v3_large": {
+                "fn": ssdlite320_mobilenet_v3_large, 
+                "weights": SSDLite320_MobileNet_V3_Large_Weights.DEFAULT
             }
         }
 
-        faster_rcnn_cfg = cfg.get("faster_rcnn", {})
-        self.name = faster_rcnn_cfg["name"]
-        self.epochs = faster_rcnn_cfg["epochs"]
-        self.model_type = faster_rcnn_cfg["model_type"]
-        self.optimizer_name = faster_rcnn_cfg["optimizer_name"]
-        self.lr = faster_rcnn_cfg["lr"]
-        self.weight_decay = faster_rcnn_cfg["weight_decay"]
-        self.device = faster_rcnn_cfg["device"]
-        self.seed = faster_rcnn_cfg["seed"]
+        ssd_cfg = cfg.get("ssd", {})
+        self.name = ssd_cfg["name"]
+        self.epochs = ssd_cfg["epochs"]
+        self.model_type = ssd_cfg["model_type"]
+        self.optimizer_name = ssd_cfg["optimizer_name"]
+        self.lr = ssd_cfg["lr"]
+        self.weight_decay = ssd_cfg["weight_decay"]
+        self.device = ssd_cfg["device"]
+        self.seed = ssd_cfg["seed"]
 
         if self.model_type not in models:
             raise ValueError(f"Can't find model '{self.model_type}'." \
@@ -47,10 +46,11 @@ class Custom_Faster_RCNN(BaseModel):
         chosen = models[self.model_type]
         self.model = chosen["fn"](weights=chosen["weights"])
 
-
-        in_features = self.model.roi_head.box_predictor.cls_score.in_features
-        self.model.roi_heads.box_predictor = FastRCNNPredictor(
-            in_features, self.num_classes
+        in_channels  = self.model.head.classification_head.num_anchors
+        self.model.head = SSDHead(
+            in_channels=self.model.head.classification_head.data_channels, # каналы фичбэка
+            num_anchors=in_channels,
+            num_classes=self.num_classes
         )
         self.model.to(self.device)
 
