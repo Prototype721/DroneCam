@@ -5,20 +5,23 @@ data:
   train_split: "train"
   valid_split: "valid"
   test_split: "test"
+  batch_size: 16
   num_classes: 10
   img_size: 640
   seed: 42
 
 yolo8:
   name: "yolo8"
-  init_name: "yolov8m.pt"
+  init_name: "yolo8m.pt"
   epochs: 15
+  seed: 42
   device: "cpu"
 
 yolo11:
   name: "yolo11"
-  init_name: "yolov11m.pt"
+  init_name: "yolo11m.pt"
   epochs: 15
+  seed: 42
   device: "cpu"
 
 faster_rcnn:
@@ -28,6 +31,7 @@ faster_rcnn:
   epochs: 10
   lr: 0.001
   weight_decay: 0.0005
+  seed: 42
   device: "cpu"
 
 ssd:
@@ -37,10 +41,19 @@ ssd:
   epochs: 10
   lr: 0.001
   weight_decay: 0.0005
+  seed: 42
   device: "cpu"
 
 detr:
+  name: "detr"
+  init_subdir: "detr"
   epochs: 5
+  optimizer_name: "SGD"         # SGD | AdamW
+  lr: 0.001
+  weight_decay: 0.0005
+  seed: 42
+  device: "cpu"
+  num_queries: 100
 
 testing:
   device: "cpu"

@@ -18,7 +18,7 @@ class ModelFactory:
     @classmethod
     def get_model(cls, model_name, cfg, **kwargs):
         
-        model_class = cls._models.get(model_name.lower())
+        model_class = cls.models.get(model_name.lower())
         
         if not model_class:
             valid_names = list(cls._models.keys())

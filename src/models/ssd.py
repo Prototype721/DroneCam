@@ -46,17 +46,18 @@ class Custom_SSD(BaseModel):
         chosen = models[self.model_type]
         self.model = chosen["fn"](weights=chosen["weights"])
 
-        in_channels  = self.model.head.classification_head.num_anchors
+        data_channels = self.model.head.classification_head.data_channels
+        num_anchors  = self.model.head.classification_head.num_anchors
         self.model.head = SSDHead(
-            in_channels=self.model.head.classification_head.data_channels, # каналы фичбэка
-            num_anchors=in_channels,
+            in_channels=data_channels,
+            num_anchors=num_anchors,
             num_classes=self.num_classes
         )
         self.model.to(self.device)
 
         self.optimizer = self.get_optimizer()
         
-        self.data_loader = get_data_loader()
+        self.data_loader_func = get_data_loader
 
 
     def get_optimizer(self):
@@ -84,7 +85,9 @@ class Custom_SSD(BaseModel):
         
         for epoch in range(self.epochs):
             epoch_loss = 0
-            for images, targets in self.data_loader:
+            data_loader = self.data_loader_func(epoch_id=epoch,
+                                                shift_classes=True)
+            for images, targets in data_loader:
                 images = list(image.to(self.device) for image in images)
                 targets = [{k: v.to(self.device) for k, v in t.items()}
                             for t in targets]
@@ -99,7 +102,7 @@ class Custom_SSD(BaseModel):
                 epoch_loss += losses.item()
             
             print(f"Epoch {epoch+1}/{self.epochs} | " \
-                  f"Loss: {epoch_loss / len(self.data_loader):.4f}")
+                  f"Loss: {epoch_loss / len(data_loader):.4f}")
             
         auto_path = os.path.join(self.save_dir, f"{self.name}_last.pth")
         self.save_model(auto_path)

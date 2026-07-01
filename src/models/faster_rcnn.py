@@ -48,7 +48,7 @@ class Custom_Faster_RCNN(BaseModel):
         self.model = chosen["fn"](weights=chosen["weights"])
 
 
-        in_features = self.model.roi_head.box_predictor.cls_score.in_features
+        in_features = self.model.roi_heads.box_predictor.cls_score.in_features
         self.model.roi_heads.box_predictor = FastRCNNPredictor(
             in_features, self.num_classes
         )
@@ -56,7 +56,7 @@ class Custom_Faster_RCNN(BaseModel):
 
         self.optimizer = self.get_optimizer()
         
-        self.data_loader = get_data_loader()
+        self.data_loader_func = get_data_loader
 
 
     def get_optimizer(self):
@@ -84,7 +84,9 @@ class Custom_Faster_RCNN(BaseModel):
         
         for epoch in range(self.epochs):
             epoch_loss = 0
-            for images, targets in self.data_loader:
+            data_loader = self.data_loader_func(epoch_id=epoch, 
+                                                shift_classes=True)
+            for images, targets in data_loader:
                 images = list(image.to(self.device) for image in images)
                 targets = [{k: v.to(self.device) for k, v in t.items()}
                             for t in targets]
@@ -99,7 +101,7 @@ class Custom_Faster_RCNN(BaseModel):
                 epoch_loss += losses.item()
             
             print(f"Epoch {epoch+1}/{self.epochs} | " \
-                  f"Loss: {epoch_loss / len(self.data_loader):.4f}")
+                  f"Loss: {epoch_loss / len(data_loader):.4f}")
             
         auto_path = os.path.join(self.save_dir, f"{self.name}_last.pth")
         self.save_model(auto_path)
