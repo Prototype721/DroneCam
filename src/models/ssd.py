@@ -51,10 +51,8 @@ class Custom_SSD(BaseModel):
 
         in_channels = []
         for layer in self.model.head.classification_head.module_list:
-            # Если это обычная свертка Conv2d (как в VGG16), у неё есть прямой атрибут in_channels
             if hasattr(layer, "in_channels"):
                 in_channels.append(layer.in_channels)
-            # Если это блок SSD-Lite (MobileNet), каналы лежат внутри его первого дочернего слоя (обычно свертки)
             else:
                 first_sublayer = next(layer.children())
                 in_channels.append(first_sublayer.in_channels)
@@ -123,10 +121,6 @@ class Custom_SSD(BaseModel):
         self.logger.save_plots()
 
     def evaluate(self, data_loader=None) -> dict:
-        """
-        Returns dict with: loss, mAP, precision, recall, f1,
-                           mean_iou, per_class_ap.
-        """
         if data_loader is None:
             data_loader = self.data_loader_func(
                 is_valid=True

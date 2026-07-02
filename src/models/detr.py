@@ -14,7 +14,6 @@ from torch import Tensor
 
 
 class HungarianMatcher(nn.Module):
-    """Этот класс вычисляет оптимальное по стоимости назначение между target и предсказаниями."""
     def __init__(self, cost_class: float = 1, cost_bbox: float = 1, cost_giou: float = 1):
         super().__init__()
         self.cost_class = cost_class
@@ -32,11 +31,7 @@ class HungarianMatcher(nn.Module):
 
         cost_class = -out_prob[:, tgt_ids]
 
-        # Вычисление L1 дистанции между боксами
         cost_bbox = torch.cdist(out_bbox, tgt_bbox, p=1)
-
-        # Вычисление GIoU (упрощенная заглушка или импорт из оригинального DETR util.box_ops)
-        # Для простоты сборки проекта без лишних зависимостей часто используют внешнюю функцию box_cxcywh_to_xyxy
         cost_giou = -generalized_box_iou(box_cxcywh_to_xyxy(out_bbox), box_cxcywh_to_xyxy(tgt_bbox))
 
         C = self.cost_bbox * cost_bbox + self.cost_class * cost_class + self.cost_giou * cost_giou
@@ -49,7 +44,6 @@ class HungarianMatcher(nn.Module):
         ]
 
 
-# Вспомогательные функции для расчета GIoU (скопировано из DETR util/box_ops.py)
 def box_cxcywh_to_xyxy(x):
     x_c, y_c, w, h = x.unbind(-1)
     b = [(x_c - 0.5 * w), (y_c - 0.5 * h), (x_c + 0.5 * w), (y_c + 0.5 * h)]
@@ -76,7 +70,6 @@ def generalized_box_iou(boxes1, boxes2):
 
 
 class SetCriterion(nn.Module):
-    """Этот класс вычисляет лосс для DETR."""
     def __init__(self, num_classes, matcher, weight_dict, eos_coef, losses):
         super().__init__()
         self.num_classes = num_classes
@@ -144,14 +137,14 @@ class Custom_DETR(BaseModel):
         super().__init__(cfg)
 
         detr_cfg = cfg.get("detr", {})
-        self.name           = detr_cfg["name"]
-        self.epochs         = detr_cfg["epochs"]
+        self.name = detr_cfg["name"]
+        self.epochs = detr_cfg["epochs"]
         self.optimizer_name = detr_cfg["optimizer_name"]
-        self.lr             = detr_cfg["lr"]
-        self.weight_decay   = detr_cfg["weight_decay"]
-        self.device         = detr_cfg["device"]
-        self.seed           = detr_cfg["seed"]
-        self.num_queries    = detr_cfg["num_queries"]
+        self.lr = detr_cfg["lr"]
+        self.weight_decay = detr_cfg["weight_decay"]
+        self.device = detr_cfg["device"]
+        self.seed = detr_cfg["seed"]
+        self.num_queries = detr_cfg["num_queries"]
 
         self.detr_num_classes = self.num_classes + 1  # +1 for no-object class
 
@@ -180,14 +173,13 @@ class Custom_DETR(BaseModel):
             matcher=matcher,
             weight_dict=weight_dict,
             eos_coef=0.1,
-            losses=["labels", "boxes"]  # "cardinality" удален для упрощения кода лосса
+            losses=["labels", "boxes"]
         )
         self.criterion.to(self.device)
 
-        self.optimizer        = self.get_optimizer()
+        self.optimizer = self.get_optimizer()
         self.data_loader_func = get_detr_dataloader
 
-    # ------------------------------------------------------------------
 
     def get_optimizer(self):
         params = [p for p in self.model.parameters() if p.requires_grad]
@@ -201,7 +193,6 @@ class Custom_DETR(BaseModel):
             )
         raise ValueError(f"Can't find {self.optimizer_name} in optimizers!")
 
-    # ------------------------------------------------------------------
 
     def train(self):
         print(f"Start learning {self.name} on {self.device} "
@@ -238,7 +229,7 @@ class Custom_DETR(BaseModel):
 
                 epoch_loss += losses.item()
 
-            avg_loss = epoch_loss / len(data_loader)  # fixed: was self.data_loader
+            avg_loss = epoch_loss / len(data_loader)
 
             metrics = self.evaluate()
 
@@ -252,17 +243,8 @@ class Custom_DETR(BaseModel):
         self.save_model(auto_path)
         self.logger.save_plots()
 
-    # ------------------------------------------------------------------
-
     def evaluate(self, data_loader=None) -> dict:
-        """
-        Evaluate on the validation split.
 
-        Returns dict with: loss, mAP, precision, recall, f1,
-                           mean_iou, per_class_ap.
-        DETR boxes are in normalised [cx, cy, w, h] format, so we pass
-        box_format="cxcywh_norm" to the metric helper.
-        """
         if data_loader is None:
             data_loader = self.data_loader_func(is_valid=True)
 
@@ -278,7 +260,7 @@ class Custom_DETR(BaseModel):
                 detr_targets = [
                     {
                         "labels": t["labels"].to(self.device),
-                        "boxes":  t["boxes"].to(self.device),
+                        "boxes": t["boxes"].to(self.device),
                     }
                     for t in targets
                 ]
@@ -292,7 +274,6 @@ class Custom_DETR(BaseModel):
                 )
                 total_loss += loss.item()
 
-                # Convert DETR output to per-image predictions
                 prob   = outputs["pred_logits"].softmax(-1)
                 scores, labels = prob[..., :-1].max(-1)
                 boxes  = outputs["pred_boxes"]
@@ -318,8 +299,6 @@ class Custom_DETR(BaseModel):
         )
         metrics["loss"] = round(avg_loss, 6)
         return metrics
-
-    # ------------------------------------------------------------------
 
     def predict(self, images, *args, **kwargs):
         self.model.eval()

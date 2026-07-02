@@ -116,10 +116,6 @@ class Custom_Faster_RCNN(BaseModel):
 
 
     def evaluate(self, data_loader=None) -> dict:
-        """s
-        Returns dict with: loss, mAP, precision, recall, f1,
-                           mean_iou, per_class_ap.
-        """
         if data_loader is None:
             data_loader = self.data_loader_func(
                 is_valid=True
@@ -148,12 +144,12 @@ class Custom_Faster_RCNN(BaseModel):
 
                 for pred, tgt in zip(preds, targets):
                     all_preds.append({
-                        "boxes":  pred["boxes"].cpu(),
+                        "boxes": pred["boxes"].cpu(),
                         "scores": pred["scores"].cpu(),
                         "labels": pred["labels"].cpu(),
                     })
                     all_gts.append({
-                        "boxes":  tgt["boxes"].cpu(),
+                        "boxes": tgt["boxes"].cpu(),
                         "labels": tgt["labels"].cpu(),
                     })
 

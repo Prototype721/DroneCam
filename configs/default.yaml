@@ -5,7 +5,7 @@ data:
   train_split: "train"
   valid_split: "valid"
   test_split: "test"
-  batch_size: 1
+  batch_size: 16
   num_classes: 10
   img_size: 640
   seed: 42
