@@ -5,8 +5,10 @@ from src.models.ssd import Custom_SSD
 from src.models.detr import Custom_DETR
 
 from src.utils.utils import seed_everything
+
+
 class ModelFactory:
-    
+
     models = {
         "yolo8": Custom_YOLO8,
         "yolo11": Custom_YOLO11,
@@ -16,14 +18,15 @@ class ModelFactory:
     }
 
     @classmethod
-    def get_model(cls, model_name, cfg, **kwargs):
-        
+    def get_model(cls, model_name: str, cfg: dict, **kwargs):
         model_class = cls.models.get(model_name.lower())
-        
+
         if not model_class:
-            valid_names = list(cls._models.keys())
-            raise ValueError(f"Model '{model_name}' can't be find from: {valid_names}")
-        
+            valid_names = list(cls.models.keys())
+            raise ValueError(
+                f"Model '{model_name}' not found. "
+                f"Available: {valid_names}"
+            )
+
         seed_everything(cfg["data"]["seed"])
-        
         return model_class(cfg, **kwargs)

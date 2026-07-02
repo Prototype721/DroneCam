@@ -1,43 +1,23 @@
-"""
-Logger — writes per-epoch JSON logs and saves training/eval plots.
-
-Directory layout created automatically:
-    results/
-        logs/   <model_name>_log.json
-        plots/  <model_name>_loss.png
-                <model_name>_metrics.png
-                <model_name>_per_class_ap.png
-"""
-
 import json
 import os
 
 import matplotlib
-matplotlib.use("Agg")          # non-interactive backend, safe on servers
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 
 class TrainingLogger:
-    """
-    Accumulates epoch records and flushes them to disk after every epoch.
-
-    Usage:
-        logger = TrainingLogger(results_dir="results", model_name="faster_rcnn")
-        logger.log_epoch(epoch=1, loss=0.42, metrics={...})
-        logger.save_plots()          # call once at end of training
-    """
 
     def __init__(self, results_dir: str, model_name: str):
-        self.model_name  = model_name
-        self.logs_dir    = os.path.join(results_dir, "logs")
-        self.plots_dir   = os.path.join(results_dir, "plots")
-        os.makedirs(self.logs_dir,  exist_ok=True)
+        self.model_name = model_name
+        self.logs_dir = os.path.join(results_dir, "logs")
+        self.plots_dir = os.path.join(results_dir, "plots")
+        os.makedirs(self.logs_dir, exist_ok=True)
         os.makedirs(self.plots_dir, exist_ok=True)
 
         self.log_path = os.path.join(self.logs_dir, f"{model_name}_log.json")
         self.records: list = []
 
-        # Load existing log so we can append across resumed runs
         if os.path.exists(self.log_path):
             try:
                 with open(self.log_path, "r") as f:
@@ -45,19 +25,13 @@ class TrainingLogger:
             except (json.JSONDecodeError, OSError):
                 self.records = []
 
-    # ------------------------------------------------------------------
-    # Public API
-    # ------------------------------------------------------------------
 
     def log_epoch(self, epoch: int, loss: float, metrics: dict | None = None):
-        """
-        Add one epoch record.  metrics should be the dict returned by
-        compute_detection_metrics(), or None if evaluate() was not called.
-        """
+
         record = {"epoch": epoch, "loss": round(float(loss), 6)}
         if metrics:
             record.update({k: v for k, v in metrics.items()
-                           if k != "per_class_ap"})          # scalars only
+                           if k != "per_class_ap"})
             record["per_class_ap"] = metrics.get("per_class_ap", [])
 
         self.records.append(record)
@@ -65,7 +39,7 @@ class TrainingLogger:
         self._print_epoch(record)
 
     def save_plots(self):
-        """Generate and save all plots.  Call once after training is done."""
+
         if not self.records:
             return
         self._plot_loss()
@@ -74,9 +48,6 @@ class TrainingLogger:
             self._plot_per_class_ap()
         print(f"[Logger] Plots saved to '{self.plots_dir}'")
 
-    # ------------------------------------------------------------------
-    # Internal helpers
-    # ------------------------------------------------------------------
 
     def _flush(self):
         with open(self.log_path, "w") as f:
@@ -137,8 +108,8 @@ class TrainingLogger:
         plt.close(fig)
         print(f"[Logger] Metrics plot → {path}")
 
+
     def _plot_per_class_ap(self):
-        """Bar chart of per-class AP from the last logged epoch."""
         last = next(
             (r for r in reversed(self.records) if r.get("per_class_ap")),
             None
@@ -166,4 +137,4 @@ class TrainingLogger:
                             f"{self.model_name}_per_class_ap.png")
         fig.savefig(path, dpi=120)
         plt.close(fig)
-        print(f"[Logger] Per-class AP plot → {path}")
+        print(f"[Logger] Per-class AP plot -> {path}")

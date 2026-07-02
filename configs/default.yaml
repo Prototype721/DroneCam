@@ -12,16 +12,19 @@ data:
 
 yolo8:
   name: "yolo8"
-  init_name: "yolo8m.pt"
+  init_name: "models_weights/default/yolov8m.pt"
+  data_yaml: "data/yolo/data.yaml"
   epochs: 15
   seed: 42
   device: "cpu"
 
 yolo11:
   name: "yolo11"
-  init_name: "yolo11m.pt"
+  init_name: "models_weights/default/yolo11m.pt"
+  data_yaml: "data/yolo/data.yaml"
   epochs: 15
   seed: 42
+  device: "cpu"
   device: "cpu"
 
 faster_rcnn:

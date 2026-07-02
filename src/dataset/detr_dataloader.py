@@ -14,31 +14,13 @@ def coco_collate_fn(batch):
 def get_detr_transformer():
     return T.Compose([
         T.ToImage(),
+        T.Resize((640, 640)),
         T.ToDtype(torch.float32, scale=True),
         T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     ])
 
 
-class ClassShiftDatasetWrapper(torch.utils.data.Dataset):
-    def __init__(self, coco_dataset):
-        self.coco_dataset = coco_dataset
-
-    def __len__(self):
-        return len(self.coco_dataset)
-
-    def __getitem__(self, idx):
-        image, targets = self.coco_dataset[idx]
-        
-        shifted_targets = []
-        for target in targets:
-            new_target = target.copy()
-            new_target['category_id'] = target['category_id'] + 1
-            shifted_targets.append(new_target)
-            
-        return image, shifted_targets
-
-
-class DETRDatasetWrapper(torch.utils.data.Dataset):
+class NormalizedDetectionWrapper(torch.utils.data.Dataset):
     def __init__(self, coco_dataset, img_size=640):
         self.coco_dataset = coco_dataset
         self.img_size = float(img_size)
@@ -63,7 +45,7 @@ class DETRDatasetWrapper(torch.utils.data.Dataset):
             h_norm = h / self.img_size
             
             boxes.append([cx_norm, cy_norm, w_norm, h_norm])
-            labels.append(target['category_id'])
+            labels.append(target['category_id'] - 1) # backgtound is last class
             
         if len(boxes) == 0:
             boxes = torch.zeros((0, 4), dtype=torch.float32)
@@ -81,20 +63,14 @@ class DETRDatasetWrapper(torch.utils.data.Dataset):
 
 
 
-def get_data_loader(is_valid=False, is_test=False, 
-                    epoch_id=None, is_detr=False,
-                    shift_classes=False):
+def get_detr_dataloader(is_valid=False, is_test=False, 
+                    epoch_id=None):
     
     cfg = load_config()
 
     data_cfg = cfg["data"]
-    if is_detr:
-        data_transforms = get_detr_transformer()
-    else:
-        data_transforms = T.Compose([
-            T.ToImage(),
-            T.ToDtype(torch.float32, scale=True)
-        ])
+
+    data_transforms = get_detr_transformer()
 
     path_dir = data_cfg["processed_dir"]
 
@@ -119,16 +95,13 @@ def get_data_loader(is_valid=False, is_test=False,
         transform=data_transforms
     )
 
-    if is_detr:
-        img_size = cfg["training"].get("img_size", 640)
-        coco_dataset = DETRDatasetWrapper(coco_dataset, img_size=img_size)
-    elif shift_classes:
-        coco_dataset = ClassShiftDatasetWrapper(coco_dataset)
+    img_size = data_cfg["img_size"]
+    coco_dataset = NormalizedDetectionWrapper(coco_dataset, img_size=img_size)
 
     dataloader = DataLoader(
         coco_dataset,
         batch_size=data_cfg["batch_size"],
-        shuffle=True,
+        shuffle = not is_valid and not is_test,
         num_workers=2,
         collate_fn=coco_collate_fn
     )
