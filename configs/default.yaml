@@ -5,7 +5,7 @@ data:
   train_split: "train"
   valid_split: "valid"
   test_split: "test"
-  batch_size: 16
+  batch_size: 1
   num_classes: 10
   img_size: 640
   seed: 42
@@ -31,7 +31,7 @@ faster_rcnn:
   name: "faster_rcnn"
   model_type: "fpn_v2"          # fpn_v2 | v3_large_320_fpn
   optimizer_name: "SGD"         # SGD | AdamW
-  epochs: 10
+  epochs: 5
   lr: 0.001
   weight_decay: 0.0005
   seed: 42
@@ -41,7 +41,7 @@ ssd:
   name: "ssd"
   model_type: "vgg16"           # vgg16 | v3_large
   optimizer_name: "SGD"         # SGD | AdamW
-  epochs: 10
+  epochs: 5
   lr: 0.001
   weight_decay: 0.0005
   seed: 42
